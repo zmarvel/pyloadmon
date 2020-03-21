@@ -1,6 +1,7 @@
 
 
 from dataclasses import dataclass
+import dataclasses
 from enum import Enum
 from pathlib import Path
 import os
@@ -47,6 +48,8 @@ class Status:
     processor: int = 0
     policy: SchedPolicy = SchedPolicy.NORMAL
 
+    def asdict(self):
+        return dataclasses.asdict(self)
 
 class Proc:
     page_size = 0
@@ -59,7 +62,8 @@ class Proc:
                 self.page_size = self._read_page_size()
             except PermissionError:
                 pass
-        self.cmdline = self._read_command_line()
+        # self.cmdline = self._read_command_line()
+        self.cmdline = self._read_command_line(1)
         self.status = Status()
 
     @property
@@ -75,10 +79,9 @@ class Proc:
             line = f.read().rstrip()
             parts = line.split(' ')
             for i, part in enumerate(parts):
-                if ')' in part:
+                if ')' in part and '(' not in part:
                     break
             del parts[i]
-
 
         clk_tck = os.sysconf('SC_CLK_TCK')
         def ticks(s: str) -> int:
@@ -88,10 +91,7 @@ class Proc:
             return int(s) * self.page_size
 
         def update_col(attr, col, type):
-            try:
-                setattr(self.status, attr, type(parts[col]))
-            except ValueError:
-                print(line)
+            setattr(self.status, attr, type(parts[col]))
 
         update_col('state', 2, State)
         update_col('parent_pid', 3, int)
@@ -124,11 +124,11 @@ class Proc:
         else:
             return 0
 
-    def _read_command_line(self):
+    def _read_command_line(self, n=-1):
         # only needs to be called once--`/proc/pid/cmdline`
         cmdline_path = self.proc_dir / 'cmdline'
         with open(cmdline_path, 'rb') as f:
             line = f.read()
             parts = line.split(b'\0')
             parts[-1].rstrip()
-            return ' '.join([p.decode('utf8') for p in parts])
+            return ' '.join([p.decode('utf8') for p in parts[:n]])

@@ -1,5 +1,4 @@
 
-import dataclasses
 from time import sleep
 
 from tabulate import tabulate
@@ -12,14 +11,8 @@ def main():
     sampler = Sampler()
     while True:
         status = sampler.sample()
-        table = []
-        for pid, st in status.items():
-            st = dataclasses.asdict(st)
-            st['pid'] = pid
-            st['cmdline'] = sampler.get_cmdline(pid)
-            table.append(st)
-        table.sort(key=lambda st: st['pid'])
-        print(tabulate(table, headers='keys'))
+        status.sort(key=lambda st: st['pid'])
+        print(tabulate(status, headers='keys'))
         print()
         sleep(1)
 
